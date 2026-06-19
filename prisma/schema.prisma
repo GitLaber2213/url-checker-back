@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum JobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+enum UrlStatus {
+  PENDING
+  IN_PROGRESS
+  SUCCESS
+  ERROR
+  CANCELLED
+}
+
+model Job {
+  id        String         @id @default(uuid())
+  createdAt DateTime       @default(now())
+  status    JobStatus      @default(PENDING)
+  cancelled Boolean        @default(false)
+  proxy     String?
+  urls      UrlCheckItem[]
+
+  @@index([createdAt(sort: Desc)])
+}
+
+model UrlCheckItem {
+  id           String     @id @default(uuid())
+  jobId        String
+  job          Job        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  url          String
+  status       UrlStatus  @default(PENDING)
+  httpStatus   Int?
+  errorMessage String?
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  durationMs   Int?
+  sortOrder    Int        @default(0)
+
+  @@index([jobId])
+}
