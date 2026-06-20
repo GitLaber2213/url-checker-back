@@ -21,7 +21,7 @@ NestJS + PostgreSQL + Redis (BullMQ).
 Поднимает PostgreSQL, Redis и backend:
 
 ```bash
-docker compose up -d --build
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 ```
 
 Проверка API:

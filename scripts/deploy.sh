@@ -23,6 +23,16 @@ if ! grep -q '^POSTGRES_PASSWORD=.\+' .env; then
   exit 1
 fi
 
+if ! grep -q '^CORS_ORIGIN=.\+' .env; then
+  echo "ERROR: CORS_ORIGIN is missing or empty in .env"
+  exit 1
+fi
+
+if [ -f docker-compose.override.yml ]; then
+  echo "ERROR: Remove docker-compose.override.yml on the server (it overrides CORS_ORIGIN)."
+  exit 1
+fi
+
 COMPOSE="docker compose --env-file .env -f ${COMPOSE_FILE}"
 POSTGRES_VOLUME="${POSTGRES_VOLUME:-3205_postgres_data_v2}"
 
@@ -34,7 +44,6 @@ if [ "${RESET_DB:-}" = "1" ]; then
   docker volume rm url-checker-back_postgres_data_v2 2>/dev/null || true
 fi
 
-# Podman reuses anonymous volumes from the previous container unless it is removed first.
 docker rm -f 3205-postgres 2>/dev/null || true
 
 ${COMPOSE} build backend
@@ -63,6 +72,7 @@ i=0
 while [ "$i" -lt 45 ]; do
   if curl -sf "http://127.0.0.1:3000/api/jobs?page=1&limit=1" >/dev/null 2>&1; then
     echo "==> Backend is up"
+    echo "==> CORS_ORIGIN in container: $(${COMPOSE} exec -T backend printenv CORS_ORIGIN)"
     ${COMPOSE} ps
     docker image prune -f
     exit 0
@@ -76,7 +86,7 @@ ${COMPOSE} logs --tail=50 backend
 echo ""
 echo "Check on the server:"
 echo "  cat .env"
-echo "  ${COMPOSE} exec backend printenv POSTGRES_PASSWORD POSTGRES_HOST"
+echo "  ${COMPOSE} exec backend printenv CORS_ORIGIN POSTGRES_PASSWORD POSTGRES_HOST"
 echo ""
 echo "If logs show P1000, reset the database volume once:"
 echo "  RESET_DB=1 ./scripts/deploy.sh"
