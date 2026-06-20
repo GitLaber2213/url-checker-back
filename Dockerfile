@@ -15,8 +15,6 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
-ENV DATABASE_URL=postgresql://postgres:postgres@3205-postgres:5432/3205-test?schema=public
-ENV REDIS_HOST=3205-redis
 ENV REDIS_PORT=6379
 
 COPY package.json yarn.lock ./

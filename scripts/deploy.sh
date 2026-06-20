@@ -10,9 +10,19 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
+if ! grep -q '^POSTGRES_PASSWORD=.\+' .env; then
+  echo "ERROR: POSTGRES_PASSWORD is missing or empty in .env"
+  exit 1
+fi
+
 COMPOSE="docker compose --env-file .env -f ${COMPOSE_FILE}"
 
-${COMPOSE} build --pull backend
+if [ "${RESET_DB:-}" = "1" ]; then
+  echo "==> RESET_DB=1: removing postgres volume (database will be recreated)"
+  ${COMPOSE} down -v
+fi
+
+${COMPOSE} build backend
 ${COMPOSE} up -d --force-recreate
 
 echo "==> Waiting for backend..."
@@ -30,4 +40,8 @@ done
 
 echo "ERROR: Backend health check failed"
 ${COMPOSE} logs --tail=50 backend
+echo ""
+echo "If logs show P1000, the postgres volume was likely initialized with another password."
+echo "On the server run once:"
+echo "  RESET_DB=1 ./scripts/deploy.sh"
 exit 1
