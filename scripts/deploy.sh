@@ -10,15 +10,17 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
-docker compose -f "${COMPOSE_FILE}" build --pull backend
-docker compose -f "${COMPOSE_FILE}" up -d
+COMPOSE="docker compose --env-file .env -f ${COMPOSE_FILE}"
+
+${COMPOSE} build --pull backend
+${COMPOSE} up -d --force-recreate
 
 echo "==> Waiting for backend..."
 i=0
 while [ "$i" -lt 30 ]; do
   if curl -sf "http://127.0.0.1:3000/api/jobs?page=1&limit=1" >/dev/null 2>&1; then
     echo "==> Backend is up"
-    docker compose -f "${COMPOSE_FILE}" ps
+    ${COMPOSE} ps
     docker image prune -f
     exit 0
   fi
@@ -27,5 +29,5 @@ while [ "$i" -lt 30 ]; do
 done
 
 echo "ERROR: Backend health check failed"
-docker compose -f "${COMPOSE_FILE}" logs --tail=50 backend
+${COMPOSE} logs --tail=50 backend
 exit 1

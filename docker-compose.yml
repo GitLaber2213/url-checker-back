@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
+    container_name: 3205-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -13,37 +14,46 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - app
+      app:
+        aliases:
+          - postgres
     restart: unless-stopped
 
   redis:
     image: redis:7-alpine
+    container_name: 3205-redis
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
     networks:
-      - app
+      app:
+        aliases:
+          - redis
     restart: unless-stopped
 
   backend:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: 3205-backend
     ports:
       - "3000:3000"
     environment:
       PORT: 3000
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-3205-test}?schema=public
-      REDIS_HOST: redis
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@3205-postgres:5432/${POSTGRES_DB:-3205-test}?schema=public
+      REDIS_HOST: 3205-redis
       REDIS_PORT: 6379
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    links:
+      - postgres
+      - redis
     networks:
       - app
     restart: unless-stopped
