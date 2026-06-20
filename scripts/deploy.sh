@@ -24,14 +24,39 @@ if ! grep -q '^POSTGRES_PASSWORD=.\+' .env; then
 fi
 
 COMPOSE="docker compose --env-file .env -f ${COMPOSE_FILE}"
+POSTGRES_VOLUME="${POSTGRES_VOLUME:-3205_postgres_data_v2}"
 
 if [ "${RESET_DB:-}" = "1" ]; then
   echo "==> RESET_DB=1: removing postgres volume (database will be recreated)"
-  ${COMPOSE} down -v
+  ${COMPOSE} down -v --remove-orphans 2>/dev/null || true
+  docker rm -f 3205-postgres 3205-backend 3205-redis 2>/dev/null || true
+  docker volume rm "${POSTGRES_VOLUME}" 2>/dev/null || true
+  docker volume rm url-checker-back_postgres_data_v2 2>/dev/null || true
 fi
+
+# Podman reuses anonymous volumes from the previous container unless it is removed first.
+docker rm -f 3205-postgres 2>/dev/null || true
 
 ${COMPOSE} build backend
 ${COMPOSE} up -d --force-recreate
+
+echo "==> Verifying postgres credentials..."
+i=0
+while [ "$i" -lt 15 ]; do
+  if ${COMPOSE} exec -T postgres sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT 1" >/dev/null 2>&1'; then
+    break
+  fi
+  i=$((i + 1))
+  sleep 2
+done
+
+if ! ${COMPOSE} exec -T postgres sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT 1" >/dev/null 2>&1'; then
+  echo "ERROR: Postgres authentication failed (P1000)."
+  echo "The data volume was likely initialized with a different POSTGRES_PASSWORD."
+  echo "On the server run once (this deletes all database data):"
+  echo "  RESET_DB=1 ./scripts/deploy.sh"
+  exit 1
+fi
 
 echo "==> Waiting for backend..."
 i=0

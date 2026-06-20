@@ -61,6 +61,7 @@ services:
 
 volumes:
   postgres_data_v2:
+    name: 3205_postgres_data_v2
 
 networks:
   app:
