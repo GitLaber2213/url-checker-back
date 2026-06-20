@@ -9,10 +9,21 @@ NestJS + PostgreSQL + Redis (BullMQ).
 |--------|------|-------------------|----------|
 | **Backend API** | `3000` | http://localhost:3000 | REST API и SSE |
 | **Frontend (UI)** | `5173` | http://localhost:5173 | Веб-интерфейс (`3205-front`, Vite dev) |
+| **Directus (админка БД)** | `8055` | http://localhost:8055 | UI для таблиц `Job`, `UrlCheckItem` |
 | **PostgreSQL** | `5432` | `postgresql://postgres:postgres@localhost:5432/3205-test` | База данных |
 | **Redis** | `6379` | `redis://localhost:6379` | Очередь BullMQ и флаги отмены job |
 
-> **Админка БД (Directus)** в текущем `docker-compose` не подключена.  
+> **Directus** подключён к той же PostgreSQL, что и backend. Таблицы приложения: `Job`, `UrlCheckItem`.
+
+---
+
+## Directus (админка БД)
+
+Локально:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d directus
+```
 
 ---
 
@@ -124,6 +135,12 @@ docker compose logs -f backend
 
 # проверка Redis
 docker compose exec redis redis-cli ping
+
+# проверка Directus
+curl http://127.0.0.1:8055/server/health
+
+# логи Directus
+docker compose logs -f directus
 
 # проверка PostgreSQL
 docker compose exec postgres pg_isready -U postgres -d 3205-test

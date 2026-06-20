@@ -14,7 +14,7 @@ sed -i 's/\r$//' .env 2>/dev/null || true
 
 if grep -q '^DATABASE_URL=' .env || grep -q '^REDIS_HOST=' .env; then
   echo "ERROR: Remove DATABASE_URL and REDIS_HOST from .env on the server."
-  echo "Production .env needs only POSTGRES_* and CORS_ORIGIN."
+  echo "Production .env needs POSTGRES_*, CORS_ORIGIN and DIRECTUS_*."
   exit 1
 fi
 
@@ -28,6 +28,13 @@ if ! grep -q '^CORS_ORIGIN=.\+' .env; then
   exit 1
 fi
 
+for var in DIRECTUS_KEY DIRECTUS_SECRET DIRECTUS_ADMIN_EMAIL DIRECTUS_ADMIN_PASSWORD; do
+  if ! grep -q "^${var}=.\\+" .env; then
+    echo "ERROR: ${var} is missing or empty in .env"
+    exit 1
+  fi
+done
+
 if [ -f docker-compose.override.yml ]; then
   echo "ERROR: Remove docker-compose.override.yml on the server (it overrides CORS_ORIGIN)."
   exit 1
@@ -39,7 +46,7 @@ POSTGRES_VOLUME="${POSTGRES_VOLUME:-3205_postgres_data_v2}"
 if [ "${RESET_DB:-}" = "1" ]; then
   echo "==> RESET_DB=1: removing postgres volume (database will be recreated)"
   ${COMPOSE} down -v --remove-orphans 2>/dev/null || true
-  docker rm -f 3205-postgres 3205-backend 3205-redis 2>/dev/null || true
+  docker rm -f 3205-postgres 3205-backend 3205-redis 3205-directus 2>/dev/null || true
   docker volume rm "${POSTGRES_VOLUME}" 2>/dev/null || true
   docker volume rm url-checker-back_postgres_data_v2 2>/dev/null || true
 fi
@@ -73,6 +80,7 @@ while [ "$i" -lt 45 ]; do
   if curl -sf "http://127.0.0.1:3000/api/jobs?page=1&limit=1" >/dev/null 2>&1; then
     echo "==> Backend is up"
     echo "==> CORS_ORIGIN in container: $(${COMPOSE} exec -T backend printenv CORS_ORIGIN)"
+    echo "==> Directus PUBLIC_URL: $(${COMPOSE} exec -T directus printenv PUBLIC_URL 2>/dev/null || echo http://127.0.0.1:8055)"
     ${COMPOSE} ps
     docker image prune -f
     exit 0
