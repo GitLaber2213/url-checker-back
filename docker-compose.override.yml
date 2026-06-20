@@ -1,0 +1,15 @@
+services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  backend:
+    environment:
+      CORS_ORIGIN: http://localhost:5173
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/3205-test?schema=public
