@@ -1,8 +1,10 @@
 #!/bin/sh
 set -e
 
-if [ -z "$DATABASE_URL" ]; then
-  echo "ERROR: DATABASE_URL is not set."
+if [ -n "${POSTGRES_PASSWORD:-}" ]; then
+  export DATABASE_URL="postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@${POSTGRES_HOST:-3205-postgres}:5432/${POSTGRES_DB:-3205-test}?schema=public"
+elif [ -z "${DATABASE_URL:-}" ]; then
+  echo "ERROR: POSTGRES_PASSWORD or DATABASE_URL must be set."
   echo "Use: docker compose up --build"
   exit 1
 fi
@@ -33,12 +35,6 @@ wait_for_db() {
 
   echo ""
   echo "ERROR: Cannot reach database at DATABASE_URL host."
-  echo ""
-  echo "If you run the image with 'docker run', connect to compose network:"
-  echo "  docker compose up postgres redis -d"
-  echo "  docker run --rm -p 3000:3000 --network 3205-app -e DATABASE_URL=postgresql://postgres:postgres@postgres:5432/3205-test -e REDIS_HOST=redis 3205-back-backend"
-  echo ""
-  echo "Recommended: docker compose up --build"
   exit 1
 }
 

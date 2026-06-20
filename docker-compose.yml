@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-3205-test}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_v2:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-3205-test}"]
       interval: 5s
@@ -39,13 +39,15 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: 3205-backend
-    env_file: .env
     ports:
       - "3000:3000"
     environment:
       PORT: 3000
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@3205-postgres:5432/${POSTGRES_DB:-3205-test}?schema=public
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-3205-test}
+      POSTGRES_HOST: 3205-postgres
       REDIS_HOST: 3205-redis
       REDIS_PORT: 6379
     depends_on:
@@ -58,7 +60,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  postgres_data:
+  postgres_data_v2:
 
 networks:
   app:
